@@ -284,7 +284,8 @@ func (b *Balancer) StartHealthCheck() {
 }
 
 func (b *Balancer) runHealthChecks() {
-	checkBody := []byte(`{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}`)
+	const healthCheckID = 99999
+	checkBody := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":%d}`, healthCheckID))
 
 	seen := make(map[string]bool)
 	for _, ve := range b.vEndpoints {
@@ -293,16 +294,40 @@ func (b *Balancer) runHealthChecks() {
 		}
 		seen[ve.URL] = true
 
+		healthy := false
+		reason := ""
+
 		req, err := http.NewRequest("POST", ve.URL, bytes.NewReader(checkBody))
 		if err != nil {
-			continue
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := b.directClient.Do(req)
-		healthy := err == nil && resp != nil && resp.StatusCode == 200
-		if resp != nil {
-			resp.Body.Close()
+			reason = err.Error()
+		} else {
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := b.directClient.Do(req)
+			if err != nil {
+				reason = err.Error()
+			} else {
+				body, err := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				if err != nil {
+					reason = err.Error()
+				} else if resp.StatusCode != 200 {
+					reason = fmt.Sprintf("status %d", resp.StatusCode)
+				} else {
+					var rpcResp struct {
+						ID json.RawMessage `json:"id"`
+					}
+					if json.Unmarshal(body, &rpcResp) != nil {
+						reason = "invalid json response"
+					} else {
+						var respID int
+						if json.Unmarshal(rpcResp.ID, &respID) != nil || respID != healthCheckID {
+							reason = fmt.Sprintf("id mismatch: sent %d, got %s", healthCheckID, string(rpcResp.ID))
+						} else {
+							healthy = true
+						}
+					}
+				}
+			}
 		}
 
 		for _, ve2 := range b.vEndpoints {
@@ -314,7 +339,7 @@ func (b *Balancer) runHealthChecks() {
 		if healthy {
 			slog.Debug("health ok", "url", ve.URL)
 		} else {
-			slog.Warn("health failed", "url", ve.URL, "error", err)
+			slog.Warn("health failed", "url", ve.URL, "reason", reason)
 		}
 	}
 }
