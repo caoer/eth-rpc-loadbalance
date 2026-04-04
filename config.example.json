@@ -1,0 +1,20 @@
+{
+  "listen": ":8545",
+  "endpoints": [
+    {"url": "https://rpc-http.mezo.boar.network", "weight": 1},
+    {"url": "https://mainnet.mezo.public.validationcloud.io", "weight": 1},
+    {"url": "https://rpc-internal.mezo.org", "weight": 1},
+    {"url": "https://mezo.drpc.org", "weight": 1}
+  ],
+  "proxy_defaults": {
+    "method": "2022-blake3-aes-128-gcm",
+    "password": "YOUR_BASE64_PSK_HERE"
+  },
+  "proxies": [
+    {"name": "proxy-1", "server": "1.2.3.4", "port": 31081},
+    {"name": "proxy-2", "server": "5.6.7.8", "port": 31081}
+  ],
+  "health_check_interval": "30s",
+  "rate_limit_cooldown": "60s",
+  "max_retries": 3
+}
