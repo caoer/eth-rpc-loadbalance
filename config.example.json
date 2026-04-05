@@ -1,9 +1,8 @@
 {
   "listen": ":8545",
   "endpoints": [
-    {"url": "https://rpc-http.mezo.boar.network", "weight": 1},
     {"url": "https://mainnet.mezo.public.validationcloud.io", "weight": 1},
-    {"url": "https://rpc-internal.mezo.org", "weight": 1},
+    {"url": "https://rpc-http.mezo.boar.network", "weight": 1},
     {"url": "https://mezo.drpc.org", "weight": 1}
   ],
   "proxy_defaults": {
@@ -16,5 +15,6 @@
   ],
   "health_check_interval": "30s",
   "rate_limit_cooldown": "60s",
-  "max_retries": 3
+  "max_retries": 3,
+  "circuit_break_duration": "60s"
 }

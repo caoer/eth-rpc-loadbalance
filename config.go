@@ -17,7 +17,8 @@ type Config struct {
 	Proxies             []ProxyConfig    `json:"proxies"`
 	HealthCheckInterval string           `json:"health_check_interval"`
 	RateLimitCooldown   string           `json:"rate_limit_cooldown"`
-	MaxRetries          int              `json:"max_retries"`
+	MaxRetries           int              `json:"max_retries"`
+	CircuitBreakDuration string           `json:"circuit_break_duration"`
 }
 
 type EndpointConfig struct {
@@ -48,6 +49,14 @@ func (c *Config) GetHealthCheckInterval() time.Duration {
 
 func (c *Config) GetRateLimitCooldown() time.Duration {
 	d, err := time.ParseDuration(c.RateLimitCooldown)
+	if err != nil {
+		return 60 * time.Second
+	}
+	return d
+}
+
+func (c *Config) GetCircuitBreakDuration() time.Duration {
+	d, err := time.ParseDuration(c.CircuitBreakDuration)
 	if err != nil {
 		return 60 * time.Second
 	}
@@ -91,6 +100,9 @@ func LoadConfig(source string) (*Config, error) {
 	}
 	if cfg.MaxRetries == 0 {
 		cfg.MaxRetries = 3
+	}
+	if cfg.CircuitBreakDuration == "" {
+		cfg.CircuitBreakDuration = "60s"
 	}
 	for i := range cfg.Endpoints {
 		if cfg.Endpoints[i].Weight == 0 {
